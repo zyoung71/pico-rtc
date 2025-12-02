@@ -3,6 +3,8 @@
 #include <hardware/GPIODevice.h>
 #include <hardware/SerialUSB.h>
 
+#include <util/CStringStream.h>
+
 extern "C"
 {
 #include <ds3231.h>
@@ -61,11 +63,15 @@ namespace dateconstants
     };
 }
 
+struct _CSStreamInit;
+
 class RealTimeClock : public GPIODevice
 {
 private:
     ds3231_t rtc;
     ds3231_data_t date_time;
+    const char* date_str;
+    const char* time_str;
 
 public:
     enum DateFormat
@@ -121,6 +127,15 @@ public:
     const char* GetPrettyDate(DateFormat date_format) const;
     const char* GetPrettyTime(TimeFormat time_format) const;
 
+    inline const char* GetDateString() const
+    {
+        return date_str;
+    }
+    inline const char* GetTimeString() const
+    {
+        return time_str;
+    }
+
     bool Use24HourTime(bool military_time = true);
     bool SetTime(ds3231_data_t new_time);
     bool SetAlarm1(ds3231_alarm_1_t alarm, ALARM_1_MASKS mode);
@@ -131,4 +146,6 @@ public:
     {
         return !gpio_get(gpio_pin);
     }
+
+    friend _CSStreamInit;
 };

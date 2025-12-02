@@ -2,6 +2,14 @@
 #include <util/CStringStream.h>
 #include <comms/serial_usb.h>
 
+struct _CSStreamInit
+{
+    _CSStreamInit(const StringStreamBase* stream, const char* target)
+    {
+        target = stream->GetCString();
+    }
+};
+
 RealTimeClock::RealTimeClock(uint8_t sda_pin, uint8_t scl_pin, uint8_t int_pin, i2c_inst_t* i2c_inst, void* user_data)
     : GPIODevice(int_pin, Pull::UP, GPIO_IRQ_EDGE_FALL, user_data)
 {
@@ -27,6 +35,7 @@ void RealTimeClock::UpdateDateAndTime()
 const char* RealTimeClock::GetPrettyDate(DateFormat date_format) const
 {
     static CStringStream<32> ss;
+    static const _CSStreamInit ss_init(&ss, date_str);
     switch (date_format)
     {
         case DD_MM: ss << date_time.date << '/' << date_time.month; break;
@@ -60,12 +69,14 @@ const char* RealTimeClock::GetPrettyDate(DateFormat date_format) const
         case Day_Month_DD: ss << dateconstants::days[date_time.day - 1] << ", " << dateconstants::months[date_time.month - 1] << ' ' << date_time.date; break;
         case Day_Month_DD_YYYY: ss << dateconstants::days[date_time.day - 1] << ", " << dateconstants::months[date_time.month - 1] << ' ' << date_time.date << ", " << date_time.century << date_time.year; break;
     }
+
     return ss.GetCString();
 }
 
 const char* RealTimeClock::GetPrettyTime(TimeFormat time_format) const
 {
     static CStringStream<16> ss;
+    static const _CSStreamInit ss_init(&ss, time_str);
     switch (time_format)
     {
         case HH_MM: ss << date_time.hours << ':' << date_time.minutes; break;
