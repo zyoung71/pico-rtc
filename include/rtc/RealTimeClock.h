@@ -1,8 +1,7 @@
 #pragma once
 
 #include <hardware/GPIODevice.h>
-
-#include <string>
+#include <hardware/SerialUSB.h>
 
 extern "C"
 {
@@ -119,14 +118,14 @@ public:
         return date_time;
     }
 
-    std::string GetPrettyDate(DateFormat date_format) const;
-    std::string GetPrettyTime(TimeFormat time_format) const;
+    const char* GetPrettyDate(DateFormat date_format) const;
+    const char* GetPrettyTime(TimeFormat time_format) const;
 
-    bool UseMilitaryTime(bool military_time);
+    bool Use24HourTime(bool military_time = true);
     bool SetTime(ds3231_data_t new_time);
     bool SetAlarm1(ds3231_alarm_1_t alarm, ALARM_1_MASKS mode);
     bool SetAlarm2(ds3231_alarm_2_t alarm, ALARM_2_MASKS mode);
-    bool SyncTimeOverUSB(uint32_t timeout_ms = 5000);
+    bool SyncTime(const Command& command);
 
     inline bool IsActivated() const override
     {

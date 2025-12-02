@@ -1,8 +1,6 @@
 #include <rtc/RealTimeClock.h>
-
-#include <sstream>
-
-#include <comms/tiny_usb.h>
+#include <util/CStringStream.h>
+#include <comms/serial_usb.h>
 
 RealTimeClock::RealTimeClock(uint8_t sda_pin, uint8_t scl_pin, uint8_t int_pin, i2c_inst_t* i2c_inst, void* user_data)
     : GPIODevice(int_pin, Pull::UP, GPIO_IRQ_EDGE_FALL, user_data)
@@ -26,9 +24,9 @@ void RealTimeClock::UpdateDateAndTime()
     ds3231_read_current_time(&rtc, &date_time);
 }
 
-std::string RealTimeClock::GetPrettyDate(DateFormat date_format) const
+const char* RealTimeClock::GetPrettyDate(DateFormat date_format) const
 {
-    std::stringstream ss;
+    static CStringStream<32> ss;
     switch (date_format)
     {
         case DD_MM: ss << date_time.date << '/' << date_time.month; break;
@@ -62,24 +60,24 @@ std::string RealTimeClock::GetPrettyDate(DateFormat date_format) const
         case Day_Month_DD: ss << dateconstants::days[date_time.day - 1] << ", " << dateconstants::months[date_time.month - 1] << ' ' << date_time.date; break;
         case Day_Month_DD_YYYY: ss << dateconstants::days[date_time.day - 1] << ", " << dateconstants::months[date_time.month - 1] << ' ' << date_time.date << ", " << date_time.century << date_time.year; break;
     }
-    return ss.str();
+    return ss.GetCString();
 }
 
-std::string RealTimeClock::GetPrettyTime(TimeFormat time_format) const
+const char* RealTimeClock::GetPrettyTime(TimeFormat time_format) const
 {
-    std::stringstream ss;
+    static CStringStream<16> ss;
     switch (time_format)
     {
         case HH_MM: ss << date_time.hours << ':' << date_time.minutes; break;
         case HH_MM_SS: ss << date_time.hours << ':' << date_time.minutes << ':' << date_time.seconds; break;
     }
     if (rtc.am_pm_mode)
-        ss << date_time.am_pm ? "PM" : "AM";
+        ss << (date_time.am_pm ? "PM" : "AM");
         
-    return ss.str();
+    return ss.GetCString();
 }
 
-bool RealTimeClock::UseMilitaryTime(bool military_time)
+bool RealTimeClock::Use24HourTime(bool military_time)
 {
     return ds3231_enable_am_pm_mode(&rtc, !military_time) == 0;
 }
@@ -101,33 +99,26 @@ bool RealTimeClock::SetAlarm2(ds3231_alarm_2_t alarm, ALARM_2_MASKS mode)
     return ds3231_set_alarm_2(&rtc, &alarm, mode) == 0;
 }
 
-bool RealTimeClock::SyncTimeOverUSB(uint32_t timeout_ms)
+bool RealTimeClock::SyncTime(const Command& command)
 {
-    
     char buff[128];
-    if (comms_read_serial_over_usb(buff, sizeof(buff), timeout_ms) != COMMS_OK)
-        return false;
-
-    constexpr const char* command = "cmd synctime";
-
-    if (strncmp(buff, command, sizeof(command)) == 0)
+    strncpy(buff, command.command_arguments, max_command_segment_length);
+    
+    uint32_t year, month, day, weekday, hour, minute, second; // Expecting 24-hour time
+    if (sscanf(buff, "%d %d %d %d %d %d %d", &year, &month, &day, &weekday, &hour, &minute, &second) == 7)
     {
-        uint32_t year, month, day, weekday, hour, minute, second; // Expecting 24-hour time
-        if (sscanf(buff + sizeof(command), "%d %d %d %d %d %d %d", &year, &month, &day, &weekday, &hour, &minute, &second) == 7)
-        {
-            ds3231_data_t date = {
-                .seconds = static_cast<uint8_t>(second),
-                .minutes = static_cast<uint8_t>(minute),
-                .hours = static_cast<uint8_t>(hour),
-                .am_pm = hour >= 12,
-                .day = static_cast<uint8_t>(weekday),
-                .date = static_cast<uint8_t>(day),
-                .month = static_cast<uint8_t>(month),
-                .century = static_cast<uint8_t>(year / 100),
-                .year = static_cast<uint8_t>(year % 100)
-            };
-            return ds3231_configure_time(&rtc, &date) == 0;
-        }
+        ds3231_data_t date = {
+            .seconds = static_cast<uint8_t>(second),
+            .minutes = static_cast<uint8_t>(minute),
+            .hours = static_cast<uint8_t>(hour),
+            .am_pm = hour >= 12,
+            .day = static_cast<uint8_t>(weekday),
+            .date = static_cast<uint8_t>(day),
+            .month = static_cast<uint8_t>(month),
+            .century = static_cast<uint8_t>(year / 100),
+            .year = static_cast<uint8_t>(year % 100)
+        };
+        return ds3231_configure_time(&rtc, &date) == 0;
     }
     return false;
 }

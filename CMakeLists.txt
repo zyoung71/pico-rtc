@@ -6,7 +6,6 @@ if (NOT TARGET pico-rtc)
 
     add_subdirectory(lib/pico-ds3231/libraries)
     add_subdirectory(lib/pico-event-hardware)
-    add_subdirectory(lib/pico-comms)
 
     target_include_directories(pico-rtc PUBLIC
         include
@@ -16,7 +15,6 @@ if (NOT TARGET pico-rtc)
         pico_stdlib
         pico_ds3231
         pico-event-hardware
-        pico-comms
     )
 
 endif()
