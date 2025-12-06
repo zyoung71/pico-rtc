@@ -21,10 +21,7 @@ int main()
     RealTimeClock rtc(4, 5, 6);
     rtc.Use24HourTime(true);
     
-    auto func = &command_callback;
-    usb.SetActions(&func, 1);
-
-    usb.SetUserData(&rtc);
+    int id = usb.AddAction(&command_callback, &rtc);
     
     while (1)
     {

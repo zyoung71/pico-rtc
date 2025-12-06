@@ -3,8 +3,6 @@
 #include <hardware/GPIODevice.h>
 #include <hardware/SerialUSB.h>
 
-#include <util/CStringStream.h>
-
 extern "C"
 {
 #include <ds3231.h>
@@ -68,10 +66,13 @@ struct _CSStreamInit;
 class RealTimeClock : public GPIODevice
 {
 private:
+    static constexpr size_t date_str_size = 32;
+    static constexpr size_t time_str_size = 16;
+
     ds3231_t rtc;
     ds3231_data_t date_time;
-    const char* date_str;
-    const char* time_str;
+    char date_str[date_str_size];
+    char time_str[time_str_size];
 
 public:
     enum DateFormat
@@ -114,7 +115,7 @@ public:
         HH_MM_SS            //      8:07:59 PM  or 20:07:59
     };
 
-    RealTimeClock(uint8_t sda_pin, uint8_t scl_pin, uint8_t int_pin, i2c_inst_t* i2c_inst = i2c0, void* user_data = nullptr);
+    RealTimeClock(uint8_t sda_pin, uint8_t scl_pin, uint8_t int_pin, i2c_inst_t* i2c_inst = i2c0);
     ~RealTimeClock() = default;
 
     void UpdateDateAndTime();
@@ -124,8 +125,8 @@ public:
         return date_time;
     }
 
-    const char* GetPrettyDate(DateFormat date_format) const;
-    const char* GetPrettyTime(TimeFormat time_format) const;
+    const char* GetPrettyDate(DateFormat date_format);
+    const char* GetPrettyTime(TimeFormat time_format);
 
     inline const char* GetDateString() const
     {

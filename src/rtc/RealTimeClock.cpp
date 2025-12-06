@@ -1,17 +1,15 @@
 #include <rtc/RealTimeClock.h>
-#include <util/CStringStream.h>
 #include <comms/serial_usb.h>
 
-struct _CSStreamInit
-{
-    _CSStreamInit(const StringStreamBase* stream, const char* target)
-    {
-        target = stream->GetCString();
-    }
-};
+#define FORMAT_DATE(fmt, ...) chars_written = snprintf(date_str, date_str_size, fmt, __VA_ARGS__)
+#define FORMAT_TIME(fmt, ...) chars_written = snprintf(time_str, time_str_size, fmt, __VA_ARGS__)
+#define MONTH_SHORT dateconstants::months_short[date_time.month - 1]
+#define MONTH dateconstants::months[date_time.month - 1]
+#define DAY_SHORT dateconstants::days_short[date_time.day - 1]
+#define DAY dateconstants::days[date_time.day - 1]
 
-RealTimeClock::RealTimeClock(uint8_t sda_pin, uint8_t scl_pin, uint8_t int_pin, i2c_inst_t* i2c_inst, void* user_data)
-    : GPIODevice(int_pin, Pull::UP, GPIO_IRQ_EDGE_FALL, user_data)
+RealTimeClock::RealTimeClock(uint8_t sda_pin, uint8_t scl_pin, uint8_t int_pin, i2c_inst_t* i2c_inst)
+    : GPIODevice(int_pin, Pull::UP, GPIO_IRQ_EDGE_FALL)
 {
     stdio_init_all();
 
@@ -32,60 +30,60 @@ void RealTimeClock::UpdateDateAndTime()
     ds3231_read_current_time(&rtc, &date_time);
 }
 
-const char* RealTimeClock::GetPrettyDate(DateFormat date_format) const
+const char* RealTimeClock::GetPrettyDate(DateFormat date_format)
 {
-    static CStringStream<32> ss;
-    static const _CSStreamInit ss_init(&ss, date_str);
+    int chars_written;
     switch (date_format)
     {
-        case DD_MM: ss << date_time.date << '/' << date_time.month; break;
-        case DD_MM_YY: ss << date_time.date << '/' << date_time.month << '/' << date_time.year; break;
-        case DD_MM_YYYY: ss << date_time.date << '/' << date_time.month << '/' << date_time.century << date_time.year; break;
-        case MM_DD: ss << date_time.month << '/' << date_time.date; break;
-        case MM_DD_YY: ss << date_time.month << '/' << date_time.date << '/' << date_time.year; break;
-        case MM_DD_YYYY: ss << date_time.month << '/' << date_time.date << '/' << date_time.century << date_time.year; break;
-        case DD_MMM: ss << date_time.date << ' ' << dateconstants::months_short[date_time.month - 1]; break;
-        case DD_MMM_YYYY: ss << date_time.date << ' ' << dateconstants::months_short[date_time.month - 1] << ", " << date_time.century << date_time.year; break;
-        case MMM_DD: ss << dateconstants::months_short[date_time.month - 1] << ' ' << date_time.date; break;
-        case MMM_DD_YYYY: ss << dateconstants::months_short[date_time.month - 1] << ' ' << date_time.date << ", " << date_time.century << date_time.year; break;
-        case DD_Month: ss << date_time.date << ' ' << dateconstants::months[date_time.month - 1]; break;
-        case DD_Month_YYYY: ss << date_time.date << ' ' << dateconstants::months[date_time.month - 1] << ", " << date_time.century << date_time.year; break;
-        case Month_DD: ss << dateconstants::months[date_time.month - 1] << ' ' << date_time.date; break;
-        case Month_DD_YYYY: ss << dateconstants::months[date_time.month - 1] << ' ' << date_time.date << ", " << date_time.century << date_time.year; break;
-        case DDD_DD_MMM: ss << dateconstants::days_short[date_time.day - 1] << ", " << date_time.date << ' ' << dateconstants::months_short[date_time.month - 1]; break;
-        case DDD_DD_MMM_YYYY: ss << dateconstants::days_short[date_time.day - 1] << ", " << date_time.date << ' ' << dateconstants::months_short[date_time.month - 1] << ", " << date_time.century << date_time.year; break;
-        case DDD_MMM_DD: ss << dateconstants::days_short[date_time.day - 1] << ", " << dateconstants::months_short[date_time.month - 1] << ' ' << date_time.date; break;
-        case DDD_MMM_DD_YYYY: ss << dateconstants::days_short[date_time.day - 1] << ", " << dateconstants::months_short[date_time.month - 1] << ' ' << date_time.date << ", " << date_time.century << date_time.year; break;
-        case DDD_DD_Month: ss << dateconstants::days_short[date_time.day - 1] << ", " << date_time.date << ' ' << dateconstants::months[date_time.month - 1]; break;
-        case DDD_DD_Month_YYYY: ss << dateconstants::days_short[date_time.day - 1] << ", " << date_time.date << ' ' << dateconstants::months[date_time.month - 1] << ", " << date_time.century << date_time.year; break;
-        case DDD_Month_DD: ss << dateconstants::days_short[date_time.day - 1] << ", " << dateconstants::months[date_time.month - 1] << ' ' << date_time.date; break;
-        case DDD_Month_DD_YYYY: ss << dateconstants::days_short[date_time.day - 1] << ", " << dateconstants::months[date_time.month - 1] << ' ' << date_time.date << ", " << date_time.century << date_time.year; break;
-        case Day_DD_MMM: ss << dateconstants::days[date_time.day - 1] << ", " << date_time.date << ' ' << dateconstants::months_short[date_time.month - 1]; break;
-        case Day_DD_MMM_YYYY: ss << dateconstants::days[date_time.day - 1] << ", " << date_time.date << ' ' << dateconstants::months_short[date_time.month - 1] << ", " << date_time.century << date_time.year; break;
-        case Day_MMM_DD: ss << dateconstants::days[date_time.day - 1] << ", " << dateconstants::months_short[date_time.month - 1] << ' ' << date_time.date; break;
-        case Day_MMM_DD_YYYY: ss << dateconstants::days[date_time.day - 1] << ", " << dateconstants::months_short[date_time.month - 1] << ' ' << date_time.date << ", " << date_time.century << date_time.year; break;
-        case Day_DD_Month: ss << dateconstants::days[date_time.day - 1] << ", " << date_time.date << ' ' << dateconstants::months[date_time.month - 1]; break;
-        case Day_DD_Month_YYYY: ss << dateconstants::days[date_time.day - 1] << ", " << date_time.date << ' ' << dateconstants::months[date_time.month - 1] << ", " << date_time.century << date_time.year; break;
-        case Day_Month_DD: ss << dateconstants::days[date_time.day - 1] << ", " << dateconstants::months[date_time.month - 1] << ' ' << date_time.date; break;
-        case Day_Month_DD_YYYY: ss << dateconstants::days[date_time.day - 1] << ", " << dateconstants::months[date_time.month - 1] << ' ' << date_time.date << ", " << date_time.century << date_time.year; break;
+        case DD_MM: FORMAT_DATE("%u/%u", date_time.date, date_time.month); break;
+        case DD_MM_YY: FORMAT_DATE("%u/%u/%u", date_time.date, date_time.month, date_time.year); break;
+        case DD_MM_YYYY: FORMAT_DATE("%u/%u/%u%u", date_time.date, date_time.month, date_time.century, date_time.year); break;
+        case MM_DD: FORMAT_DATE("%u/%u", date_time.month, date_time.date); break;
+        case MM_DD_YY: FORMAT_DATE("%u/%u/%u", date_time.month, date_time.date, date_time.year); break;
+        case MM_DD_YYYY: FORMAT_DATE("%u/%u/%u%u", date_time.month, date_time.date, date_time.century, date_time.year); break;
+        case DD_MMM: FORMAT_DATE("%u %s", date_time.date, MONTH_SHORT); break;
+        case DD_MMM_YYYY: FORMAT_DATE("%u %s, %u%u", date_time.date, MONTH_SHORT); break;
+        case MMM_DD: FORMAT_DATE("%s %u", MONTH_SHORT, date_time.date); break;
+        case MMM_DD_YYYY: FORMAT_DATE("%s %u, %u%u", MONTH_SHORT, date_time.date, date_time.century, date_time.year); break;
+        case DD_Month: FORMAT_DATE("%u %s", date_time.date, MONTH); break;
+        case DD_Month_YYYY: FORMAT_DATE("%u %s, %u%u", date_time.date, MONTH, date_time.century, date_time.year); break;
+        case Month_DD: FORMAT_DATE("%s %u", MONTH, date_time.date); break;
+        case Month_DD_YYYY: FORMAT_DATE("%s %u, %u%u", MONTH, date_time.date, date_time.century, date_time.year); break;
+        case DDD_DD_MMM: FORMAT_DATE("%s, %u %s", DAY_SHORT, date_time.date, MONTH_SHORT); break;
+        case DDD_DD_MMM_YYYY: FORMAT_DATE("%s, %u %s, %u%u", DAY_SHORT, date_time.date, MONTH_SHORT, date_time.century, date_time.year); break;
+        case DDD_MMM_DD: FORMAT_DATE("%s, %s %u", DAY_SHORT, MONTH_SHORT, date_time.date); break;
+        case DDD_MMM_DD_YYYY: FORMAT_DATE("%s, %s %u, %u%u", DAY_SHORT, MONTH_SHORT, date_time.date, date_time.century, date_time.year);
+        case DDD_DD_Month: FORMAT_DATE("%s, %u %s", DAY_SHORT, date_time.date, MONTH); break;
+        case DDD_DD_Month_YYYY: FORMAT_DATE("%s, %u %s, %u%u", DAY_SHORT, date_time.date, MONTH, date_time.century, date_time.year); break;
+        case DDD_Month_DD: FORMAT_DATE("%s, %s %u", DAY_SHORT, MONTH, date_time.date); break;
+        case DDD_Month_DD_YYYY: FORMAT_DATE("%s, %s %u, %u%u", DAY_SHORT, MONTH, date_time.date, date_time.century, date_time.year); break;
+        case Day_DD_MMM: FORMAT_DATE("%s, %u %s", DAY, date_time.date, MONTH_SHORT); break;
+        case Day_DD_MMM_YYYY: FORMAT_DATE("%s, %u %s, %u%u", DAY, date_time.date, MONTH_SHORT, date_time.century, date_time.year); break;
+        case Day_MMM_DD: FORMAT_DATE("%s, %s %u", DAY, MONTH_SHORT, date_time.date); break;
+        case Day_MMM_DD_YYYY: FORMAT_DATE("%s, %s %u, %u%u", DAY, MONTH_SHORT, date_time.date, date_time.century, date_time.year); break;
+        case Day_DD_Month: FORMAT_DATE("%s, %u %s", DAY, date_time.date, MONTH); break;
+        case Day_DD_Month_YYYY: FORMAT_DATE("%s, %u %s, %u%u", DAY, date_time.date, MONTH, date_time.century, date_time.year); break;
+        case Day_Month_DD: FORMAT_DATE("%s, %s %u", DAY, MONTH, date_time.date); break;
+        case Day_Month_DD_YYYY: FORMAT_DATE("%s, %s %u, %u%u", DAY, MONTH, date_time.date, date_time.century, date_time.year); break;
+        default: return GetPrettyDate(DateFormat::DD_MM_YYYY);
     }
 
-    return ss.GetCString();
+    return date_str;
 }
 
-const char* RealTimeClock::GetPrettyTime(TimeFormat time_format) const
+const char* RealTimeClock::GetPrettyTime(TimeFormat time_format)
 {
-    static CStringStream<16> ss;
-    static const _CSStreamInit ss_init(&ss, time_str);
+    int chars_written;
     switch (time_format)
     {
-        case HH_MM: ss << date_time.hours << ':' << date_time.minutes; break;
-        case HH_MM_SS: ss << date_time.hours << ':' << date_time.minutes << ':' << date_time.seconds; break;
+        case HH_MM: FORMAT_TIME("%02u:%02u", date_time.hours, date_time.minutes); break;
+        case HH_MM_SS: FORMAT_TIME("%02u:%02u:%02u", date_time.hours, date_time.minutes, date_time.seconds); break;
+        default: return GetPrettyTime(TimeFormat::HH_MM);
     }
     if (rtc.am_pm_mode)
-        ss << (date_time.am_pm ? "PM" : "AM");
+        snprintf(time_str + chars_written, time_str_size, "%s", date_time.am_pm ? "PM" : "AM");
         
-    return ss.GetCString();
+    return time_str;
 }
 
 bool RealTimeClock::Use24HourTime(bool military_time)
