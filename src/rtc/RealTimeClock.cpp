@@ -1,8 +1,9 @@
 #include <rtc/RealTimeClock.h>
-#include <comms/serial_usb.h>
 
+// utility macros to be used only here
 #define FORMAT_DATE(fmt, ...) chars_written = snprintf(date_str, date_str_size, fmt, __VA_ARGS__)
 #define FORMAT_TIME(fmt, ...) chars_written = snprintf(time_str, time_str_size, fmt, __VA_ARGS__)
+#define CENTURY date_time.century + 20
 #define MONTH_SHORT dateconstants::months_short[date_time.month - 1]
 #define MONTH dateconstants::months[date_time.month - 1]
 #define DAY_SHORT dateconstants::days_short[date_time.day - 1]
@@ -11,14 +12,10 @@
 RealTimeClock::RealTimeClock(uint8_t sda_pin, uint8_t scl_pin, uint8_t int_pin, i2c_inst_t* i2c_inst)
     : GPIODevice(int_pin, Pull::UP, GPIO_IRQ_EDGE_FALL)
 {
-    stdio_init_all();
-
     gpio_init(sda_pin);
     gpio_init(scl_pin);
     gpio_set_function(sda_pin, GPIO_FUNC_I2C);
     gpio_set_function(scl_pin, GPIO_FUNC_I2C);
-
-    i2c_init(i2c_inst, 400 * 1000);
 
     ds3231_init(&rtc, i2c_inst, 0, 0);
 
@@ -37,34 +34,34 @@ const char* RealTimeClock::GetPrettyDate(DateFormat date_format)
     {
         case DD_MM: FORMAT_DATE("%u/%u", date_time.date, date_time.month); break;
         case DD_MM_YY: FORMAT_DATE("%u/%u/%u", date_time.date, date_time.month, date_time.year); break;
-        case DD_MM_YYYY: FORMAT_DATE("%u/%u/%u%u", date_time.date, date_time.month, date_time.century, date_time.year); break;
+        case DD_MM_YYYY: FORMAT_DATE("%u/%u/%u%u", date_time.date, date_time.month, CENTURY, date_time.year); break;
         case MM_DD: FORMAT_DATE("%u/%u", date_time.month, date_time.date); break;
         case MM_DD_YY: FORMAT_DATE("%u/%u/%u", date_time.month, date_time.date, date_time.year); break;
-        case MM_DD_YYYY: FORMAT_DATE("%u/%u/%u%u", date_time.month, date_time.date, date_time.century, date_time.year); break;
+        case MM_DD_YYYY: FORMAT_DATE("%u/%u/%u%u", date_time.month, date_time.date, CENTURY, date_time.year); break;
         case DD_MMM: FORMAT_DATE("%u %s", date_time.date, MONTH_SHORT); break;
         case DD_MMM_YYYY: FORMAT_DATE("%u %s, %u%u", date_time.date, MONTH_SHORT); break;
         case MMM_DD: FORMAT_DATE("%s %u", MONTH_SHORT, date_time.date); break;
-        case MMM_DD_YYYY: FORMAT_DATE("%s %u, %u%u", MONTH_SHORT, date_time.date, date_time.century, date_time.year); break;
+        case MMM_DD_YYYY: FORMAT_DATE("%s %u, %u%u", MONTH_SHORT, date_time.date, CENTURY, date_time.year); break;
         case DD_Month: FORMAT_DATE("%u %s", date_time.date, MONTH); break;
-        case DD_Month_YYYY: FORMAT_DATE("%u %s, %u%u", date_time.date, MONTH, date_time.century, date_time.year); break;
+        case DD_Month_YYYY: FORMAT_DATE("%u %s, %u%u", date_time.date, MONTH, CENTURY, date_time.year); break;
         case Month_DD: FORMAT_DATE("%s %u", MONTH, date_time.date); break;
-        case Month_DD_YYYY: FORMAT_DATE("%s %u, %u%u", MONTH, date_time.date, date_time.century, date_time.year); break;
+        case Month_DD_YYYY: FORMAT_DATE("%s %u, %u%u", MONTH, date_time.date, CENTURY, date_time.year); break;
         case DDD_DD_MMM: FORMAT_DATE("%s, %u %s", DAY_SHORT, date_time.date, MONTH_SHORT); break;
-        case DDD_DD_MMM_YYYY: FORMAT_DATE("%s, %u %s, %u%u", DAY_SHORT, date_time.date, MONTH_SHORT, date_time.century, date_time.year); break;
+        case DDD_DD_MMM_YYYY: FORMAT_DATE("%s, %u %s, %u%u", DAY_SHORT, date_time.date, MONTH_SHORT, CENTURY, date_time.year); break;
         case DDD_MMM_DD: FORMAT_DATE("%s, %s %u", DAY_SHORT, MONTH_SHORT, date_time.date); break;
-        case DDD_MMM_DD_YYYY: FORMAT_DATE("%s, %s %u, %u%u", DAY_SHORT, MONTH_SHORT, date_time.date, date_time.century, date_time.year);
+        case DDD_MMM_DD_YYYY: FORMAT_DATE("%s, %s %u, %u%u", DAY_SHORT, MONTH_SHORT, date_time.date, CENTURY, date_time.year);
         case DDD_DD_Month: FORMAT_DATE("%s, %u %s", DAY_SHORT, date_time.date, MONTH); break;
-        case DDD_DD_Month_YYYY: FORMAT_DATE("%s, %u %s, %u%u", DAY_SHORT, date_time.date, MONTH, date_time.century, date_time.year); break;
+        case DDD_DD_Month_YYYY: FORMAT_DATE("%s, %u %s, %u%u", DAY_SHORT, date_time.date, MONTH, CENTURY, date_time.year); break;
         case DDD_Month_DD: FORMAT_DATE("%s, %s %u", DAY_SHORT, MONTH, date_time.date); break;
-        case DDD_Month_DD_YYYY: FORMAT_DATE("%s, %s %u, %u%u", DAY_SHORT, MONTH, date_time.date, date_time.century, date_time.year); break;
+        case DDD_Month_DD_YYYY: FORMAT_DATE("%s, %s %u, %u%u", DAY_SHORT, MONTH, date_time.date, CENTURY, date_time.year); break;
         case Day_DD_MMM: FORMAT_DATE("%s, %u %s", DAY, date_time.date, MONTH_SHORT); break;
-        case Day_DD_MMM_YYYY: FORMAT_DATE("%s, %u %s, %u%u", DAY, date_time.date, MONTH_SHORT, date_time.century, date_time.year); break;
+        case Day_DD_MMM_YYYY: FORMAT_DATE("%s, %u %s, %u%u", DAY, date_time.date, MONTH_SHORT, CENTURY, date_time.year); break;
         case Day_MMM_DD: FORMAT_DATE("%s, %s %u", DAY, MONTH_SHORT, date_time.date); break;
-        case Day_MMM_DD_YYYY: FORMAT_DATE("%s, %s %u, %u%u", DAY, MONTH_SHORT, date_time.date, date_time.century, date_time.year); break;
+        case Day_MMM_DD_YYYY: FORMAT_DATE("%s, %s %u, %u%u", DAY, MONTH_SHORT, date_time.date, CENTURY, date_time.year); break;
         case Day_DD_Month: FORMAT_DATE("%s, %u %s", DAY, date_time.date, MONTH); break;
-        case Day_DD_Month_YYYY: FORMAT_DATE("%s, %u %s, %u%u", DAY, date_time.date, MONTH, date_time.century, date_time.year); break;
+        case Day_DD_Month_YYYY: FORMAT_DATE("%s, %u %s, %u%u", DAY, date_time.date, MONTH, CENTURY, date_time.year); break;
         case Day_Month_DD: FORMAT_DATE("%s, %s %u", DAY, MONTH, date_time.date); break;
-        case Day_Month_DD_YYYY: FORMAT_DATE("%s, %s %u, %u%u", DAY, MONTH, date_time.date, date_time.century, date_time.year); break;
+        case Day_Month_DD_YYYY: FORMAT_DATE("%s, %s %u, %u%u", DAY, MONTH, date_time.date, CENTURY, date_time.year); break;
         default: return GetPrettyDate(DateFormat::DD_MM_YYYY);
     }
 
@@ -124,7 +121,7 @@ bool RealTimeClock::SyncTime(const Command& command)
             .day = static_cast<uint8_t>(weekday),
             .date = static_cast<uint8_t>(day),
             .month = static_cast<uint8_t>(month),
-            .century = static_cast<uint8_t>(year / 100),
+            .century = static_cast<uint8_t>(year / 2100), // this is a single bit. 0 for 2000-2099, 1 for 2100-2199
             .year = static_cast<uint8_t>(year % 100)
         };
         return ds3231_configure_time(&rtc, &date) == 0;
