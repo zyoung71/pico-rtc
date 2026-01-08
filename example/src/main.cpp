@@ -54,6 +54,8 @@ int main()
             gpio_put(PICO_DEFAULT_LED_PIN, 0);
     }, &rtc);
 
+    RealTimeClock::DateFormat fmt = RealTimeClock::StringToDateFormat("MMM_DD");
+
     gpio_put(PICO_DEFAULT_LED_PIN, 0);
     while (1)
     {

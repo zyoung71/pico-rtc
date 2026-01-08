@@ -9,6 +9,82 @@
 #define DAY_SHORT dateconstants::days_short[date_time.day - 1]
 #define DAY dateconstants::days[date_time.day - 1]
 
+RealTimeClock::DateFormat RealTimeClock::StringToDateFormat(const char* date)
+{
+    if (strcmp(date, "DD_MM") == 0)
+        return DD_MM;
+    if (strcmp(date, "DD_MM_YY") == 0)
+        return DD_MM_YY;
+    if (strcmp(date, "DD_MM_YYYY") == 0)
+        return DD_MM_YYYY;
+    if (strcmp(date, "MM_DD") == 0)
+        return MM_DD;
+    if (strcmp(date, "MM_DD_YY") == 0)
+        return MM_DD_YY;
+    if (strcmp(date, "MM_DD_YYYY") == 0)
+        return MM_DD_YYYY;
+    if (strcmp(date, "DD_MMM") == 0)
+        return DD_MMM;
+    if (strcmp(date, "DD_MMM_YYYY") == 0)
+        return DD_MMM_YYYY;
+    if (strcmp(date, "MMM_DD") == 0)
+        return MMM_DD;
+    if (strcmp(date, "MMM_DD_YYYY") == 0)
+        return MMM_DD_YYYY;
+    if (strcmp(date, "DD_Month") == 0)
+        return DD_Month;
+    if (strcmp(date, "DD_Month_YYYY") == 0)
+        return DD_Month_YYYY;
+    if (strcmp(date, "Month_DD") == 0)
+        return Month_DD;
+    if (strcmp(date, "Month_DD_YYYY") == 0)
+        return Month_DD_YYYY;
+    if (strcmp(date, "DDD_DD_MMM") == 0)
+        return DDD_DD_MMM;
+    if (strcmp(date, "DDD_DD_MMM_YYYY") == 0)
+        return DDD_DD_MMM_YYYY;
+    if (strcmp(date, "DDD_MMM_DD") == 0)
+        return DDD_MMM_DD;
+    if (strcmp(date, "DDD_MMM_DD_YYYY") == 0)
+        return DDD_MMM_DD_YYYY;
+    if (strcmp(date, "DDD_DD_Month") == 0)
+        return DDD_DD_Month;
+    if (strcmp(date, "DDD_DD_Month_YYYY") == 0)
+        return DDD_DD_Month_YYYY;
+    if (strcmp(date, "DDD_Month_DD") == 0)
+        return DDD_Month_DD;
+    if (strcmp(date, "DDD_Month_DD_YYYY") == 0)
+        return DDD_Month_DD_YYYY;
+    if (strcmp(date, "Day_DD_MMM") == 0)
+        return Day_DD_MMM;
+    if (strcmp(date, "Day_DD_MMM_YYYY") == 0)
+        return Day_DD_MMM_YYYY;
+    if (strcmp(date, "Day_MMM_DD") == 0)
+        return Day_MMM_DD;
+    if (strcmp(date, "Day_MMM_DD_YYYY") == 0)
+        return Day_MMM_DD_YYYY;
+    if (strcmp(date, "Day_MMM_DD_YYYY") == 0)
+        return Day_DD_Month;
+    if (strcmp(date, "Day_MMM_DD_YYYY") == 0)
+        return Day_DD_Month_YYYY;
+    if (strcmp(date, "Day_MMM_DD_YYYY") == 0)
+        return Day_Month_DD;
+    if (strcmp(date, "Day_MMM_DD_YYYY") == 0)
+        return Day_Month_DD_YYYY;
+    
+    return MMM_DD;
+}
+
+RealTimeClock::TimeFormat RealTimeClock::StringToTimeFormat(const char* time)
+{
+    if (strcmp(time, "HH_MM") == 0)
+        return HH_MM;
+    if (strcmp(time, "HH_MM_SS") == 0)
+        return HH_MM_SS;
+
+    return HH_MM;
+}
+
 RealTimeClock::RealTimeClock(uint8_t sda_pin, uint8_t scl_pin, uint8_t int_pin, i2c_inst_t* i2c_inst)
     : GPIODevice(int_pin, Pull::UP, GPIO_IRQ_EDGE_FALL)
 {

@@ -115,6 +115,9 @@ public:
         HH_MM_SS            //      8:07:59 PM  or 20:07:59
     };
 
+    static DateFormat StringToDateFormat(const char* date);
+    static TimeFormat StringToTimeFormat(const char* time);
+
     RealTimeClock(uint8_t sda_pin, uint8_t scl_pin, uint8_t int_pin, i2c_inst_t* i2c_inst = i2c0);
     ~RealTimeClock() = default;
 
