@@ -61,8 +61,6 @@ namespace dateconstants
     };
 }
 
-struct _CSStreamInit;
-
 class RealTimeClock : public GPIODevice
 {
 private:
@@ -73,6 +71,15 @@ private:
     ds3231_data_t date_time;
     char date_str[date_str_size];
     char time_str[time_str_size];
+
+    bool alarm_1_active;
+    bool alarm_2_active;
+
+    static void AlarmFlagResetCallback(const Event* ev, void* ptr);
+
+protected:
+    void EnableImpl() override;
+    void DisableImpl() override;
 
 public:
     enum DateFormat
@@ -150,6 +157,4 @@ public:
     {
         return !gpio_get(gpio_pin);
     }
-
-    friend _CSStreamInit;
 };

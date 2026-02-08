@@ -39,8 +39,22 @@ int main()
     rtc.Use24HourTime(false);
     rtc.UpdateDateAndTime();
 
+    static constexpr ds3231_alarm_2_t discarded = {
+        .minutes = 0,
+        .hours = 0,
+        .am_pm = 0,
+        .day = 0,
+        .date = 0
+    };
+
+    rtc.SetAlarm2(discarded, ON_EVERY_MINUTE);
+
+    std::ignore = rtc.AddAction([](const Event* ev, void*){
+        puts("CLOCK HAS FIRED");
+    });
+
     int id = usb.AddAction(&command_callback, &rtc);
-    
+
     Button log_button = 16;
 
     int id_log = log_button.AddAction([](const Event* ev, void* ptr){

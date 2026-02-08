@@ -1,5 +1,11 @@
 #include <rtc/RealTimeClock.h>
 
+extern "C"
+{
+    int i2c_read_reg(i2c_inst_t* i2c, uint8_t dev_addr, uint8_t dev_register, size_t length, uint8_t* data);
+    int i2c_write_reg(i2c_inst_t* i2c, uint8_t dev_addr, uint8_t dev_register, size_t length, uint8_t* data);
+}
+
 // utility macros to be used only here
 #define FORMAT_DATE(fmt, ...) chars_written = snprintf(date_str, date_str_size, fmt, __VA_ARGS__)
 #define FORMAT_TIME(fmt, ...) chars_written = snprintf(time_str, time_str_size, fmt, __VA_ARGS__)
@@ -85,17 +91,45 @@ RealTimeClock::TimeFormat RealTimeClock::StringToTimeFormat(const char* time)
     return HH_MM;
 }
 
+void RealTimeClock::EnableImpl()
+{
+    GPIODevice::EnableImpl();
+    ds3231_enable_alarm_interrupt(&rtc, true);
+}
+
+void RealTimeClock::DisableImpl()
+{
+    GPIODevice::DisableImpl();
+    ds3231_enable_alarm_interrupt(&rtc, false);
+}
+
+void RealTimeClock::AlarmFlagResetCallback(const Event* ev, void* ptr)
+{
+    RealTimeClock* source = ev->GetSourceAsType<RealTimeClock>();
+    ds3231_t* rtc = &source->rtc;
+
+    ds3231_clear_alarms(rtc, source->alarm_1_active, source->alarm_2_active);
+}
+
 RealTimeClock::RealTimeClock(uint8_t sda_pin, uint8_t scl_pin, uint8_t int_pin, i2c_inst_t* i2c_inst)
-    : GPIODevice(int_pin, Pull::UP, GPIO_IRQ_EDGE_FALL)
+    : GPIODevice(int_pin, Pull::UP, GPIO_IRQ_EDGE_FALL), alarm_1_active(false), alarm_2_active(false)
 {
     gpio_init(sda_pin);
     gpio_init(scl_pin);
     gpio_set_function(sda_pin, GPIO_FUNC_I2C);
     gpio_set_function(scl_pin, GPIO_FUNC_I2C);
+    gpio_pull_up(sda_pin);
+    gpio_pull_up(scl_pin);
 
     ds3231_init(&rtc, i2c_inst, 0, 0);
 
-    Disable(); // By default, IRQs are not needed.
+    ds3231_deinit_alarm_1(&rtc);
+    ds3231_deinit_alarm_2(&rtc);
+    ds3231_enable_alarm_interrupt(&rtc, true);
+    ds3231_clear_alarms(&rtc, true, true);
+
+    // this is needed to automatically reset the flag to allow another interrupt
+    std::ignore = AddAction(&AlarmFlagResetCallback);
 }
 
 void RealTimeClock::UpdateDateAndTime()
@@ -154,7 +188,7 @@ const char* RealTimeClock::GetPrettyTime(TimeFormat time_format)
         default: return GetPrettyTime(TimeFormat::HH_MM);
     }
     if (rtc.am_pm_mode)
-        snprintf(time_str + chars_written, time_str_size, " %s", ((date_time.hours + 12) % 24) >= 12 ? "PM" : "AM");
+        snprintf(time_str + chars_written, time_str_size, " %s", date_time.am_pm ? "PM" : "AM");
         
     return time_str;
 }
@@ -166,18 +200,21 @@ bool RealTimeClock::Use24HourTime(bool military_time)
 
 bool RealTimeClock::SetTime(ds3231_data_t new_time)
 {
+    date_time = new_time;
     return ds3231_configure_time(&rtc, &new_time) == 0;
 }
 
 bool RealTimeClock::SetAlarm1(ds3231_alarm_1_t alarm, ALARM_1_MASKS mode)
 {
     Enable();
+    alarm_1_active = true;
     return ds3231_set_alarm_1(&rtc, &alarm, mode) == 0;
 }
 
 bool RealTimeClock::SetAlarm2(ds3231_alarm_2_t alarm, ALARM_2_MASKS mode)
 {
     Enable();
+    alarm_2_active = true;
     return ds3231_set_alarm_2(&rtc, &alarm, mode) == 0;
 }
 
@@ -189,10 +226,20 @@ bool RealTimeClock::SyncTime(const Command& command)
     uint32_t year, month, day, weekday, hour, minute, second; // Expecting 24-hour time
     if (sscanf(buff, "%d %d %d %d %d %d %d", &year, &month, &day, &weekday, &hour, &minute, &second) == 7)
     {
+        uint8_t hour_fmt = (uint8_t)hour;
+        if (rtc.am_pm_mode)
+        {
+            if (hour > 12)
+                hour_fmt -= 12;
+            else if (hour == 0)
+                hour_fmt = 12;
+        }
+        
         ds3231_data_t date = {
             .seconds = static_cast<uint8_t>(second),
             .minutes = static_cast<uint8_t>(minute),
             .hours = rtc.am_pm_mode ? static_cast<uint8_t>(hour > 12 ? hour - 12 : hour == 0 ? 12 : hour) : static_cast<uint8_t>(hour),
+            .hours_24 = static_cast<uint8_t>(hour),
             .am_pm = (hour >= 12),
             .day = static_cast<uint8_t>(weekday),
             .date = static_cast<uint8_t>(day),
@@ -200,7 +247,7 @@ bool RealTimeClock::SyncTime(const Command& command)
             .century = static_cast<uint8_t>(year / 2100), // this is a single bit. 0 for 2000-2099, 1 for 2100-2199
             .year = static_cast<uint8_t>(year % 100)
         };
-        return ds3231_configure_time(&rtc, &date) == 0;
+        return SetTime(date);
     }
     return false;
 }
