@@ -154,7 +154,7 @@ const char* RealTimeClock::GetPrettyTime(TimeFormat time_format)
         default: return GetPrettyTime(TimeFormat::HH_MM);
     }
     if (rtc.am_pm_mode)
-        snprintf(time_str + chars_written, time_str_size, "%s", date_time.am_pm ? "PM" : "AM");
+        snprintf(time_str + chars_written, time_str_size, " %s", date_time.am_pm ? "PM" : "AM");
         
     return time_str;
 }
