@@ -154,7 +154,7 @@ const char* RealTimeClock::GetPrettyTime(TimeFormat time_format)
         default: return GetPrettyTime(TimeFormat::HH_MM);
     }
     if (rtc.am_pm_mode)
-        snprintf(time_str + chars_written, time_str_size, " %s", date_time.am_pm ? "PM" : "AM");
+        snprintf(time_str + chars_written, time_str_size, " %s", ((date_time.hours + 12) % 24) >= 12 ? "PM" : "AM");
         
     return time_str;
 }
@@ -192,8 +192,8 @@ bool RealTimeClock::SyncTime(const Command& command)
         ds3231_data_t date = {
             .seconds = static_cast<uint8_t>(second),
             .minutes = static_cast<uint8_t>(minute),
-            .hours = static_cast<uint8_t>(hour),
-            .am_pm = hour >= 12,
+            .hours = rtc.am_pm_mode ? static_cast<uint8_t>(hour > 12 ? hour - 12 : hour == 0 ? 12 : hour) : static_cast<uint8_t>(hour),
+            .am_pm = (hour >= 12),
             .day = static_cast<uint8_t>(weekday),
             .date = static_cast<uint8_t>(day),
             .month = static_cast<uint8_t>(month),

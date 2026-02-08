@@ -17,7 +17,7 @@ void command_callback(const Event* ev, void* usr)
     auto rtc = (RealTimeClock*)usr;
     if (cmd.Is("synctime"))
     {
-        LOG(cmd.command_arguments);
+        LOG("%s\n", cmd.command_arguments);
         gpio_put(PICO_DEFAULT_LED_PIN, 1);
         rtc->SyncTime(cmd);
     }
@@ -36,7 +36,8 @@ int main()
     SerialUSB usb("/");
 
     RealTimeClock rtc(4, 5, 6);
-    rtc.Use24HourTime(true);
+    rtc.Use24HourTime(false);
+    rtc.UpdateDateAndTime();
 
     int id = usb.AddAction(&command_callback, &rtc);
     
