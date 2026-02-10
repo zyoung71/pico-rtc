@@ -181,15 +181,25 @@ const char* RealTimeClock::GetPrettyDate(DateFormat date_format)
 const char* RealTimeClock::GetPrettyTime(TimeFormat time_format)
 {
     int chars_written;
-    switch (time_format)
-    {
-        case HH_MM: FORMAT_TIME("%02u:%02u", date_time.hours, date_time.minutes); break;
-        case HH_MM_SS: FORMAT_TIME("%02u:%02u:%02u", date_time.hours, date_time.minutes, date_time.seconds); break;
-        default: return GetPrettyTime(TimeFormat::HH_MM);
-    }
     if (rtc.am_pm_mode)
-        snprintf(time_str + chars_written, time_str_size, " %s", date_time.am_pm ? "PM" : "AM");
-        
+    {
+        switch (time_format)
+        {
+            case HH_MM: FORMAT_TIME("%2u:%02u", date_time.hours, date_time.minutes); break;
+            case HH_MM_SS: FORMAT_TIME("%2u:%02u:%02u", date_time.hours, date_time.minutes, date_time.seconds); break;
+            default: return GetPrettyTime(TimeFormat::HH_MM);
+        }
+        snprintf(time_str + chars_written, time_str_size, " %s", date_time.am_pm ? "PM" : "AM");        
+    }
+    else
+    {
+        switch (time_format)
+        {
+            case HH_MM: FORMAT_TIME("%02u:%02u", date_time.hours, date_time.minutes); break;
+            case HH_MM_SS: FORMAT_TIME("%02u:%02u:%02u", date_time.hours, date_time.minutes, date_time.seconds); break;
+            default: return GetPrettyTime(TimeFormat::HH_MM);
+        }
+    }
     return time_str;
 }
 

@@ -148,6 +148,10 @@ public:
     }
 
     bool Use24HourTime(bool military_time = true);
+    inline bool Is24HourTime() const
+    {
+        return !rtc.am_pm_mode;
+    }
     bool SetTime(ds3231_data_t new_time);
     bool SetAlarm1(ds3231_alarm_1_t alarm, ALARM_1_MASKS mode);
     bool SetAlarm2(ds3231_alarm_2_t alarm, ALARM_2_MASKS mode);
