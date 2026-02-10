@@ -36,7 +36,7 @@ int main()
     SerialUSB usb("/");
 
     RealTimeClock rtc(4, 5, 6);
-    rtc.Use24HourTime(false);
+    rtc.Use24HourTime(true);
     rtc.UpdateDateAndTime();
 
     static constexpr ds3231_alarm_2_t discarded = {
